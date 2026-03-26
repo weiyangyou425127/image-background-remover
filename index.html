@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片去背景工具 - Image Background Remover</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 图片去背景工具</h1>
+        <p class="subtitle">快速移除图片背景，支持透明PNG导出</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            <div class="upload-content">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <p>点击或拖拽图片到这里</p>
+                <span>支持 JPG、PNG、WebP 格式</span>
+            </div>
+        </div>
+
+        <div class="preview-area" id="previewArea" style="display:none;">
+            <div class="preview-box">
+                <h3>原图</h3>
+                <img id="originalImage" alt="原图">
+            </div>
+            <div class="preview-box">
+                <h3>去背景后</h3>
+                <canvas id="resultCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="actions" id="actions" style="display:none;">
+            <button id="downloadBtn" class="btn-primary">下载图片</button>
+            <button id="resetBtn" class="btn-secondary">重新上传</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
