@@ -1,26 +1,33 @@
+const REMOVE_BG_API_KEY = 'GyCGMy55pTqCYWuavCp2HG3H';
+
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
+const loading = document.getElementById('loading');
 const previewArea = document.getElementById('previewArea');
 const originalImage = document.getElementById('originalImage');
-const resultCanvas = document.getElementById('resultCanvas');
+const resultImage = document.getElementById('resultImage');
 const actions = document.getElementById('actions');
 const downloadBtn = document.getElementById('downloadBtn');
 const resetBtn = document.getElementById('resetBtn');
+const errorDiv = document.getElementById('error');
+const errorMsg = document.getElementById('errorMsg');
+
+let resultBlob = null;
 
 uploadArea.addEventListener('click', () => fileInput.click());
 
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
-    uploadArea.style.borderColor = '#764ba2';
+    uploadArea.classList.add('dragover');
 });
 
 uploadArea.addEventListener('dragleave', () => {
-    uploadArea.style.borderColor = '#667eea';
+    uploadArea.classList.remove('dragover');
 });
 
 uploadArea.addEventListener('drop', (e) => {
     e.preventDefault();
-    uploadArea.style.borderColor = '#667eea';
+    uploadArea.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
         processImage(file);
@@ -32,44 +39,59 @@ fileInput.addEventListener('change', (e) => {
     if (file) processImage(file);
 });
 
-function processImage(file) {
+async function processImage(file) {
+    // 显示原图
     const reader = new FileReader();
-    reader.onload = (e) => {
-        originalImage.src = e.target.result;
-        originalImage.onload = () => {
-            removeBackground();
-            uploadArea.style.display = 'none';
-            previewArea.style.display = 'grid';
-            actions.style.display = 'flex';
-        };
-    };
+    reader.onload = (e) => { originalImage.src = e.target.result; };
     reader.readAsDataURL(file);
-}
 
-function removeBackground() {
-    const ctx = resultCanvas.getContext('2d');
-    resultCanvas.width = originalImage.width;
-    resultCanvas.height = originalImage.height;
-    
-    ctx.drawImage(originalImage, 0, 0);
-    const imageData = ctx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
-    const data = imageData.data;
-    
-    for (let i = 0; i < data.length; i += 4) {
-        const r = data[i], g = data[i + 1], b = data[i + 2];
-        const brightness = (r + g + b) / 3;
-        if (brightness > 200 || (Math.abs(r - g) < 30 && Math.abs(g - b) < 30)) {
-            data[i + 3] = 0;
+    // 切换到加载状态
+    uploadArea.style.display = 'none';
+    errorDiv.style.display = 'none';
+    loading.style.display = 'block';
+    previewArea.style.display = 'none';
+    actions.style.display = 'none';
+
+    try {
+        const formData = new FormData();
+        formData.append('image_file', file);
+        formData.append('size', 'auto');
+
+        const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+            method: 'POST',
+            headers: {
+                'X-Api-Key': REMOVE_BG_API_KEY,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const msg = errData.errors?.[0]?.title || `请求失败 (${response.status})`;
+            throw new Error(msg);
         }
+
+        resultBlob = await response.blob();
+        const resultUrl = URL.createObjectURL(resultBlob);
+        resultImage.src = resultUrl;
+
+        loading.style.display = 'none';
+        previewArea.style.display = 'grid';
+        actions.style.display = 'flex';
+
+    } catch (err) {
+        loading.style.display = 'none';
+        uploadArea.style.display = 'block';
+        errorDiv.style.display = 'block';
+        errorMsg.textContent = '处理失败：' + err.message;
     }
-    
-    ctx.putImageData(imageData, 0, 0);
 }
 
 downloadBtn.addEventListener('click', () => {
+    if (!resultBlob) return;
     const link = document.createElement('a');
     link.download = 'removed-background.png';
-    link.href = resultCanvas.toDataURL('image/png');
+    link.href = URL.createObjectURL(resultBlob);
     link.click();
 });
 
@@ -77,5 +99,7 @@ resetBtn.addEventListener('click', () => {
     uploadArea.style.display = 'block';
     previewArea.style.display = 'none';
     actions.style.display = 'none';
+    errorDiv.style.display = 'none';
     fileInput.value = '';
+    resultBlob = null;
 });

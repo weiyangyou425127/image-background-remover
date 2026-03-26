@@ -9,17 +9,22 @@
 <body>
     <div class="container">
         <h1>🖼️ 图片去背景工具</h1>
-        <p class="subtitle">快速移除图片背景，支持透明PNG导出</p>
+        <p class="subtitle">AI 智能去除图片背景，支持透明 PNG 导出</p>
         
         <div class="upload-area" id="uploadArea">
-            <input type="file" id="fileInput" accept="image/*" hidden>
+            <input type="file" id="fileInput" accept="image/jpg,image/jpeg,image/png,image/webp" hidden>
             <div class="upload-content">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                 </svg>
                 <p>点击或拖拽图片到这里</p>
-                <span>支持 JPG、PNG、WebP 格式</span>
+                <span>支持 JPG、PNG、WebP 格式，最大 12MB</span>
             </div>
+        </div>
+
+        <div class="loading" id="loading" style="display:none;">
+            <div class="spinner"></div>
+            <p>AI 正在处理中，请稍候...</p>
         </div>
 
         <div class="preview-area" id="previewArea" style="display:none;">
@@ -29,13 +34,23 @@
             </div>
             <div class="preview-box">
                 <h3>去背景后</h3>
-                <canvas id="resultCanvas"></canvas>
+                <div class="result-wrapper">
+                    <img id="resultImage" alt="去背景后">
+                </div>
             </div>
         </div>
 
         <div class="actions" id="actions" style="display:none;">
-            <button id="downloadBtn" class="btn-primary">下载图片</button>
-            <button id="resetBtn" class="btn-secondary">重新上传</button>
+            <button id="downloadBtn" class="btn-primary">⬇️ 下载透明PNG</button>
+            <button id="resetBtn" class="btn-secondary">🔄 重新上传</button>
+        </div>
+
+        <div class="error" id="error" style="display:none;">
+            <p id="errorMsg"></p>
+        </div>
+
+        <div class="footer">
+            <p>由 <a href="https://www.remove.bg" target="_blank">remove.bg</a> AI 技术驱动</p>
         </div>
     </div>
     <script src="script.js"></script>
