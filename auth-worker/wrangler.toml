@@ -1,0 +1,17 @@
+name = "image-bg-auth"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+GOOGLE_CLIENT_ID = "259972743242-i3h9i59c1pkcfkpo63gps5d9co08gj30.apps.googleusercontent.com"
+FRONTEND_URL = "https://imagebackgroundremover.quest"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "image-bg-users"
+database_id = "dd2db9dc-d846-4e70-8be5-9a0557a3d6f0"
+
+[env.production]
+routes = [
+  { pattern = "imagebackgroundremover.quest/api/*", zone_name = "imagebackgroundremover.quest" }
+]
