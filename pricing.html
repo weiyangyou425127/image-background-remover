@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Image Background Remover</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fc; color: #333; }
+
+        /* NAV */
+        .nav {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 0 32px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-brand { font-weight: 800; font-size: 17px; text-decoration: none; color: #222; }
+        .nav-brand span { color: #6c63ff; }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #555; font-size: 14px; }
+        .nav-links a:hover { color: #6c63ff; }
+        .btn-nav { background: #6c63ff; color: #fff !important; padding: 7px 18px; border-radius: 8px; font-weight: 600; font-size: 13px !important; }
+
+        /* HERO */
+        .hero { text-align: center; padding: 72px 16px 48px; }
+        .hero h1 { font-size: 40px; font-weight: 800; color: #1a1a2e; line-height: 1.2; }
+        .hero h1 span { color: #6c63ff; }
+        .hero p { font-size: 17px; color: #666; margin-top: 12px; }
+
+        /* TOGGLE */
+        .toggle-wrap { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 32px 0 48px; }
+        .toggle-label { font-size: 14px; color: #555; font-weight: 600; }
+        .toggle-switch {
+            width: 52px; height: 28px; background: #6c63ff;
+            border-radius: 14px; cursor: pointer; position: relative; transition: 0.2s;
+        }
+        .toggle-switch::after {
+            content: ''; position: absolute;
+            width: 22px; height: 22px; background: #fff;
+            border-radius: 50%; top: 3px; left: 3px; transition: 0.2s;
+        }
+        .toggle-switch.monthly { background: #ddd; }
+        .toggle-switch.monthly::after { left: 3px; }
+        .toggle-switch.yearly::after { left: 27px; }
+        .save-badge {
+            background: #22c55e; color: #fff;
+            font-size: 11px; font-weight: 700;
+            padding: 3px 8px; border-radius: 10px;
+        }
+
+        /* CARDS */
+        .plans { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; padding: 0 16px; max-width: 1100px; margin: 0 auto; }
+        .plan-card {
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 20px;
+            padding: 32px 28px;
+            width: 240px;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .plan-card:hover { box-shadow: 0 8px 32px rgba(108,99,255,0.12); transform: translateY(-2px); }
+        .plan-card.popular {
+            border-color: #6c63ff;
+            box-shadow: 0 8px 32px rgba(108,99,255,0.2);
+            transform: scale(1.04);
+        }
+        .popular-badge {
+            position: absolute;
+            top: -13px; left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #6c63ff, #8b5cf6);
+            color: #fff;
+            font-size: 12px; font-weight: 700;
+            padding: 4px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 12px; }
+        .plan-price { display: flex; align-items: flex-end; gap: 4px; margin-bottom: 4px; }
+        .plan-price .amount { font-size: 42px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+        .plan-price .period { font-size: 14px; color: #aaa; padding-bottom: 6px; }
+        .plan-original { font-size: 13px; color: #bbb; text-decoration: line-through; margin-bottom: 4px; min-height: 20px; }
+        .plan-desc { font-size: 13px; color: #888; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0; }
+        .plan-features { list-style: none; margin-bottom: 28px; }
+        .plan-features li {
+            font-size: 13px; color: #444;
+            padding: 6px 0;
+            display: flex; align-items: flex-start; gap: 8px;
+        }
+        .plan-features li::before { content: '✓'; color: #6c63ff; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+        .plan-features li.disabled { color: #ccc; }
+        .plan-features li.disabled::before { content: '✗'; color: #ddd; }
+        .btn-plan {
+            width: 100%; padding: 12px;
+            border-radius: 10px; border: none;
+            font-size: 14px; font-weight: 700;
+            cursor: pointer; transition: 0.2s;
+            text-decoration: none; display: block; text-align: center;
+        }
+        .btn-plan-primary { background: #6c63ff; color: #fff; }
+        .btn-plan-primary:hover { background: #5a52e0; }
+        .btn-plan-outline { background: #fff; color: #6c63ff; border: 2px solid #6c63ff !important; }
+        .btn-plan-outline:hover { background: #f5f4ff; }
+        .btn-plan-ghost { background: #f5f5f5; color: #888; }
+        .btn-plan-ghost:hover { background: #ebebeb; }
+
+        /* CREDITS SECTION */
+        .credits-section { max-width: 860px; margin: 72px auto 0; padding: 0 16px; }
+        .section-title { text-align: center; font-size: 28px; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
+        .section-sub { text-align: center; font-size: 15px; color: #888; margin-bottom: 40px; }
+        .credits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .credit-card {
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .credit-card:hover { border-color: #6c63ff; box-shadow: 0 4px 20px rgba(108,99,255,0.1); }
+        .credit-card.popular { border-color: #6c63ff; }
+        .credit-card .credit-badge {
+            position: absolute; top: -11px; left: 50%;
+            transform: translateX(-50%);
+            background: #6c63ff; color: #fff;
+            font-size: 11px; font-weight: 700;
+            padding: 3px 12px; border-radius: 10px;
+            white-space: nowrap;
+        }
+        .credit-amount { font-size: 36px; font-weight: 800; color: #6c63ff; }
+        .credit-unit { font-size: 14px; color: #888; margin: 4px 0 12px; }
+        .credit-price { font-size: 24px; font-weight: 800; color: #1a1a2e; }
+        .credit-per { font-size: 12px; color: #aaa; margin-top: 4px; }
+        .credit-tag { font-size: 11px; background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 10px; margin-top: 10px; display: inline-block; }
+
+        /* FAQ */
+        .faq-section { max-width: 720px; margin: 72px auto; padding: 0 16px; }
+        .faq-item { border-bottom: 1px solid #eee; }
+        .faq-q {
+            width: 100%; text-align: left; background: none; border: none;
+            padding: 20px 0; font-size: 15px; font-weight: 600; color: #222;
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        }
+        .faq-q:hover { color: #6c63ff; }
+        .faq-arrow { font-size: 18px; color: #aaa; transition: 0.2s; }
+        .faq-a { font-size: 14px; color: #666; line-height: 1.7; padding-bottom: 20px; display: none; }
+        .faq-item.open .faq-a { display: block; }
+        .faq-item.open .faq-arrow { transform: rotate(180deg); color: #6c63ff; }
+
+        /* TRUST */
+        .trust { text-align: center; background: #fff; padding: 48px 16px; margin-top: 72px; border-top: 1px solid #eee; }
+        .trust h3 { font-size: 18px; color: #888; font-weight: 500; margin-bottom: 32px; }
+        .trust-items { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
+        .trust-item { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #555; }
+        .trust-icon { font-size: 24px; }
+
+        /* FOOTER */
+        footer { text-align: center; padding: 24px; font-size: 13px; color: #aaa; }
+        footer a { color: #aaa; text-decoration: none; margin: 0 8px; }
+        footer a:hover { color: #6c63ff; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 28px; }
+            .plan-card { width: 100%; max-width: 340px; }
+            .plan-card.popular { transform: scale(1); }
+            .credits-grid { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="/" class="nav-brand">Image <span>BG</span> Remover</a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/dashboard.html" id="navDashboard" style="display:none">Dashboard</a>
+        <a href="https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google" class="btn-nav" id="navLogin">Get Started Free</a>
+        <a href="/dashboard.html" class="btn-nav" id="navUser" style="display:none"></a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <h1>Simple, Transparent <span>Pricing</span></h1>
+    <p>Start free. Pay only when you need more. No hidden fees.</p>
+</section>
+
+<!-- TOGGLE -->
+<div class="toggle-wrap">
+    <span class="toggle-label" id="labelMonthly" style="color:#6c63ff">Monthly</span>
+    <div class="toggle-switch yearly" id="billingToggle" onclick="toggleBilling()"></div>
+    <span class="toggle-label" id="labelYearly">Yearly</span>
+    <span class="save-badge" id="saveBadge">Save up to 34%</span>
+</div>
+
+<!-- SUBSCRIPTION PLANS -->
+<div class="plans" id="plansContainer">
+
+    <!-- Free -->
+    <div class="plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">
+            <span class="amount">$0</span>
+            <span class="period">/mo</span>
+        </div>
+        <div class="plan-original">&nbsp;</div>
+        <div class="plan-desc">Perfect for trying out the tool</div>
+        <ul class="plan-features">
+            <li>3 images on signup</li>
+            <li>Full resolution output</li>
+            <li>No watermark</li>
+            <li>PNG transparent export</li>
+            <li class="disabled">Monthly quota reset</li>
+            <li class="disabled">Batch upload</li>
+            <li class="disabled">API access</li>
+        </ul>
+        <a href="https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google" class="btn-plan btn-plan-ghost">Get Started Free</a>
+    </div>
+
+    <!-- Basic -->
+    <div class="plan-card">
+        <div class="plan-name">Basic</div>
+        <div class="plan-price">
+            <span class="amount" id="basicPrice">$4.9</span>
+            <span class="period">/mo</span>
+        </div>
+        <div class="plan-original" id="basicOriginal">$6.9/mo billed monthly</div>
+        <div class="plan-desc">For individuals with regular needs</div>
+        <ul class="plan-features">
+            <li>50 images / month</li>
+            <li>Full resolution output</li>
+            <li>No watermark</li>
+            <li>30-day history</li>
+            <li>Commercial license</li>
+            <li class="disabled">Batch upload</li>
+            <li class="disabled">API access</li>
+        </ul>
+        <button class="btn-plan btn-plan-outline" onclick="handleBuy('basic')">Get Basic</button>
+    </div>
+
+    <!-- Pro -->
+    <div class="plan-card popular">
+        <div class="popular-badge">🔥 Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">
+            <span class="amount" id="proPrice">$9.9</span>
+            <span class="period">/mo</span>
+        </div>
+        <div class="plan-original" id="proOriginal">$14.9/mo billed monthly</div>
+        <div class="plan-desc">For professionals & small teams</div>
+        <ul class="plan-features">
+            <li>200 images / month</li>
+            <li>Full resolution output</li>
+            <li>No watermark</li>
+            <li>90-day history</li>
+            <li>Commercial license</li>
+            <li>Batch upload (20 at once)</li>
+            <li>API access</li>
+        </ul>
+        <button class="btn-plan btn-plan-primary" onclick="handleBuy('pro')">Get Pro</button>
+    </div>
+
+    <!-- Business -->
+    <div class="plan-card">
+        <div class="plan-name">Business</div>
+        <div class="plan-price">
+            <span class="amount" id="businessPrice">$27.9</span>
+            <span class="period">/mo</span>
+        </div>
+        <div class="plan-original" id="businessOriginal">$39.9/mo billed monthly</div>
+        <div class="plan-desc">For teams with high-volume needs</div>
+        <ul class="plan-features">
+            <li>Unlimited images</li>
+            <li>Full resolution output</li>
+            <li>No watermark</li>
+            <li>Permanent history</li>
+            <li>Commercial license</li>
+            <li>Batch upload (unlimited)</li>
+            <li>API access + priority</li>
+        </ul>
+        <button class="btn-plan btn-plan-outline" onclick="handleBuy('business')">Get Business</button>
+    </div>
+
+</div>
+
+<!-- PAY AS YOU GO -->
+<div class="credits-section">
+    <h2 class="section-title">Pay As You Go</h2>
+    <p class="section-sub">No subscription needed. Credits never expire.</p>
+
+    <div class="credits-grid">
+        <div class="credit-card">
+            <div class="credit-amount">10</div>
+            <div class="credit-unit">images</div>
+            <div class="credit-price">$3.9</div>
+            <div class="credit-per">$0.39 per image</div>
+            <div class="credit-tag">✓ Never expires</div>
+        </div>
+        <div class="credit-card popular">
+            <div class="credit-badge">🔥 Best Value</div>
+            <div class="credit-amount">50</div>
+            <div class="credit-unit">images</div>
+            <div class="credit-price">$14.9</div>
+            <div class="credit-per">$0.30 per image</div>
+            <div class="credit-tag">✓ Never expires</div>
+        </div>
+        <div class="credit-card">
+            <div class="credit-amount">200</div>
+            <div class="credit-unit">images</div>
+            <div class="credit-price">$49.9</div>
+            <div class="credit-per">$0.25 per image</div>
+            <div class="credit-tag">✓ Never expires</div>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section">
+    <h2 class="section-title">Frequently Asked Questions</h2>
+    <p class="section-sub">Everything you need to know</p>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            How does the free plan work?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Sign up with Google and get 3 free image credits instantly. No credit card required. Credits are one-time and don't reset monthly — but they're a great way to test the quality before committing.</div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            Do Pay-As-You-Go credits expire?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">No — purchased credits never expire. Buy a pack today, use them whenever you need. Perfect for occasional use or seasonal peaks.</div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            What image formats are supported?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">We support JPG, PNG, and WebP. Output is always a full-resolution transparent PNG. Maximum file size is 25MB.</div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            Can I cancel my subscription anytime?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Yes, cancel anytime from your dashboard. You'll keep full access until the end of your billing period, and you won't be charged again.</div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            Is there a refund policy?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">If you're not satisfied within 7 days of your first purchase and haven't used more than 5 credits, contact us for a full refund. No questions asked.</div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            Are my images stored on your servers?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">Images are processed securely and stored temporarily for your history (7 days for free, 30 days for Basic, 90 days for Pro, permanent for Business). We never share or use your images for training.</div>
+    </div>
+
+    <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+            What payment methods do you accept?
+            <span class="faq-arrow">▾</span>
+        </button>
+        <div class="faq-a">We accept all major credit cards (Visa, Mastercard, Amex) via Stripe. PayPal support coming soon.</div>
+    </div>
+</div>
+
+<!-- TRUST SIGNALS -->
+<div class="trust">
+    <h3>Trusted by creators worldwide</h3>
+    <div class="trust-items">
+        <div class="trust-item"><span class="trust-icon">🔒</span> Secure payments via Stripe</div>
+        <div class="trust-item"><span class="trust-icon">🤖</span> Powered by remove.bg AI</div>
+        <div class="trust-item"><span class="trust-icon">⚡</span> Results in under 5 seconds</div>
+        <div class="trust-item"><span class="trust-icon">💳</span> Cancel anytime, no lock-in</div>
+    </div>
+</div>
+
+<footer>
+    <p>
+        <a href="/">Home</a>
+        <a href="/pricing.html">Pricing</a>
+        <a href="/dashboard.html">Dashboard</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+    </p>
+    <p style="margin-top:12px">© 2026 ImageBackgroundRemover.quest · All rights reserved</p>
+</footer>
+
+<script>
+const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+let isYearly = true;
+
+const prices = {
+    monthly: { basic: '$6.9', pro: '$14.9', business: '$39.9' },
+    yearly:  { basic: '$4.9', pro: '$9.9',  business: '$27.9' },
+    originalYearly: { basic: '$6.9/mo billed monthly', pro: '$14.9/mo billed monthly', business: '$39.9/mo billed monthly' },
+};
+
+function toggleBilling() {
+    isYearly = !isYearly;
+    const toggle = document.getElementById('billingToggle');
+    toggle.className = 'toggle-switch ' + (isYearly ? 'yearly' : 'monthly');
+
+    document.getElementById('labelMonthly').style.color = isYearly ? '#aaa' : '#6c63ff';
+    document.getElementById('labelYearly').style.color = isYearly ? '#6c63ff' : '#aaa';
+    document.getElementById('saveBadge').style.display = isYearly ? 'inline' : 'none';
+
+    const p = isYearly ? prices.yearly : prices.monthly;
+    document.getElementById('basicPrice').textContent = p.basic;
+    document.getElementById('proPrice').textContent = p.pro;
+    document.getElementById('businessPrice').textContent = p.business;
+
+    document.getElementById('basicOriginal').textContent = isYearly ? prices.originalYearly.basic : '';
+    document.getElementById('proOriginal').textContent = isYearly ? prices.originalYearly.pro : '';
+    document.getElementById('businessOriginal').textContent = isYearly ? prices.originalYearly.business : '';
+}
+
+function handleBuy(plan) {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        window.location.href = 'https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google';
+        return;
+    }
+    // Stripe 集成后跳转支付，目前提示
+    alert('💳 Payment coming soon! We\'re integrating Stripe. Stay tuned!');
+}
+
+function toggleFaq(btn) {
+    const item = btn.parentElement;
+    item.classList.toggle('open');
+}
+
+// Auth state
+async function checkAuth() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+    try {
+        const res = await fetch(`${AUTH_API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+            const user = await res.json();
+            document.getElementById('navLogin').style.display = 'none';
+            document.getElementById('navUser').style.display = 'inline-block';
+            document.getElementById('navUser').textContent = user.name.split(' ')[0];
+            document.getElementById('navDashboard').style.display = 'inline-block';
+        }
+    } catch(e) {}
+}
+
+// URL token
+const urlParams = new URLSearchParams(window.location.search);
+const t = urlParams.get('token');
+if (t) { localStorage.setItem('auth_token', t); window.history.replaceState({}, '', window.location.pathname); }
+
+checkAuth();
+</script>
+</body>
+</html>
