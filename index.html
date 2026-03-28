@@ -6,60 +6,81 @@
     <title>图片去背景工具 - Image Background Remover</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 登录相关样式 */
         .header {
             display: flex;
             justify-content: flex-end;
             align-items: center;
             padding: 12px 0 0 0;
             margin-bottom: 8px;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .user-name {
-            font-size: 14px;
-            color: #555;
-        }
-        .btn-login {
-            display: flex;
-            align-items: center;
             gap: 8px;
-            padding: 8px 16px;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #333;
-            text-decoration: none;
-            transition: box-shadow 0.2s;
         }
-        .btn-login:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+        .user-name { font-size: 14px; color: #555; }
+        .btn-login {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px; background: #fff; border: 1px solid #ddd;
+            border-radius: 6px; cursor: pointer; font-size: 14px; color: #333;
+            text-decoration: none; transition: box-shadow 0.2s;
         }
-        .btn-login svg {
-            width: 18px;
-            height: 18px;
+        .btn-login:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .btn-login svg { width: 18px; height: 18px; }
+        .btn-dashboard {
+            padding: 7px 14px; background: #6c63ff; color: #fff;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+            text-decoration: none; font-weight: 600;
         }
+        .btn-dashboard:hover { background: #5a52e0; }
         .btn-logout {
-            padding: 6px 12px;
-            background: transparent;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            color: #888;
+            padding: 6px 12px; background: transparent;
+            border: 1px solid #ddd; border-radius: 6px; cursor: pointer;
+            font-size: 13px; color: #888;
         }
         .btn-logout:hover { color: #333; border-color: #aaa; }
+
+        /* 额度提示条 */
+        .quota-bar {
+            display: none;
+            background: #f0efff;
+            border: 1px solid #d0cbff;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #5a52e0;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        /* 无额度弹窗 */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #fff; border-radius: 16px; padding: 32px;
+            max-width: 400px; width: 90%; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .modal h3 { font-size: 20px; margin-bottom: 8px; }
+        .modal p { font-size: 14px; color: #666; margin-bottom: 24px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .modal-btn {
+            padding: 10px 20px; border-radius: 8px; cursor: pointer;
+            font-size: 14px; font-weight: 600; text-decoration: none; border: none;
+        }
+        .modal-btn-primary { background: #6c63ff; color: #fff; }
+        .modal-btn-secondary { background: #f5f5f5; color: #333; }
+        .modal-btn-outline { background: transparent; border: 1.5px solid #6c63ff; color: #6c63ff; }
+
+        /* 登录引导弹窗 */
+        .login-prompt {
+            background: #fff3e0; border: 1px solid #ffe0b2;
+            border-radius: 10px; padding: 16px; text-align: center;
+            margin: 12px 0; display: none;
+        }
+        .login-prompt p { font-size: 14px; color: #e65100; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -67,7 +88,6 @@
         <!-- 顶部登录区 -->
         <div class="header">
             <div id="authArea">
-                <!-- 未登录：显示登录按钮 -->
                 <a href="https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google" class="btn-login" id="loginBtn">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -77,18 +97,21 @@
                     </svg>
                     使用 Google 登录
                 </a>
-                <!-- 已登录：显示用户信息 -->
                 <div class="user-info" id="userInfo" style="display:none;">
                     <img class="user-avatar" id="userAvatar" src="" alt="头像">
                     <span class="user-name" id="userName"></span>
+                    <a href="/dashboard.html" class="btn-dashboard" id="dashboardBtn">个人中心</a>
                     <button class="btn-logout" id="logoutBtn">退出</button>
                 </div>
             </div>
         </div>
 
+        <!-- 额度提示条 -->
+        <div class="quota-bar" id="quotaBar"></div>
+
         <h1>🖼️ 图片去背景工具</h1>
         <p class="subtitle">AI 智能去除图片背景，支持透明 PNG 导出</p>
-        
+
         <div class="upload-area" id="uploadArea">
             <input type="file" id="fileInput" accept="image/jpg,image/jpeg,image/png,image/webp" hidden>
             <div class="upload-content">
@@ -98,6 +121,15 @@
                 <p>点击或拖拽图片到这里</p>
                 <span>支持 JPG、PNG、WebP 格式，最大 12MB</span>
             </div>
+        </div>
+
+        <!-- 登录引导（未登录用完1次后显示） -->
+        <div class="login-prompt" id="loginPrompt">
+            <p>🎁 登录后获得 <strong>3张免费额度</strong>，历史记录永久保存</p>
+            <a href="https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google" class="btn-login" style="display:inline-flex">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                立即登录获取免费额度
+            </a>
         </div>
 
         <div class="loading" id="loading" style="display:none;">
@@ -131,54 +163,211 @@
             <p>由 <a href="https://www.remove.bg" target="_blank">remove.bg</a> AI 技术驱动</p>
         </div>
     </div>
+
+    <!-- 无额度弹窗 -->
+    <div class="modal-overlay" id="noCreditsModal">
+        <div class="modal">
+            <div style="font-size:48px;margin-bottom:12px">😅</div>
+            <h3>额度已用完</h3>
+            <p id="noCreditsMsg">继续使用需要购买积分或升级套餐</p>
+            <div class="modal-buttons">
+                <a href="/dashboard.html" class="modal-btn modal-btn-primary">查看积分包</a>
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 未登录弹窗 -->
+    <div class="modal-overlay" id="guestLimitModal">
+        <div class="modal">
+            <div style="font-size:48px;margin-bottom:12px">🎁</div>
+            <h3>今日免费次数已用完</h3>
+            <p>登录后立即获得 <strong>3张免费额度</strong>，还可购买更多</p>
+            <div class="modal-buttons">
+                <a href="https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google" class="modal-btn modal-btn-primary">Google 登录</a>
+                <button class="modal-btn modal-btn-secondary" onclick="closeGuestModal()">明天再来</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
     <script>
-        // ===== Google OAuth 登录逻辑 =====
         const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+        let currentUser = null;
 
+        // ===== 登录态管理 =====
         async function checkAuth() {
             const token = localStorage.getItem('auth_token');
-            if (!token) return;
-
+            if (!token) {
+                updateQuotaBar(null);
+                return;
+            }
             try {
                 const res = await fetch(`${AUTH_API}/api/auth/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    const user = await res.json();
-                    showUserInfo(user);
+                    currentUser = await res.json();
+                    showUserInfo(currentUser);
+                    updateQuotaBar(currentUser);
                 } else {
                     localStorage.removeItem('auth_token');
                 }
-            } catch (e) {
-                console.error('Auth check failed', e);
-            }
+            } catch(e) {}
         }
 
         function showUserInfo(user) {
             document.getElementById('loginBtn').style.display = 'none';
-            const userInfo = document.getElementById('userInfo');
-            userInfo.style.display = 'flex';
+            document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('userAvatar').src = user.picture || '';
             document.getElementById('userName').textContent = user.name || user.email;
         }
 
+        function updateQuotaBar(user) {
+            const bar = document.getElementById('quotaBar');
+            if (!user) { bar.style.display = 'none'; return; }
+            const total = user.total_available;
+            if (total <= 0) {
+                bar.innerHTML = '⚠️ 额度已用完 · <a href="/dashboard.html" style="color:#5a52e0;font-weight:600">购买积分</a>';
+                bar.style.display = 'block';
+            } else if (total <= 2) {
+                bar.innerHTML = `⚡ 剩余额度：<strong>${total} 张</strong> · <a href="/dashboard.html" style="color:#5a52e0;font-weight:600">购买更多</a>`;
+                bar.style.display = 'block';
+            } else {
+                bar.innerHTML = `✅ 剩余可用额度：<strong>${total} 张</strong>`;
+                bar.style.display = 'block';
+            }
+        }
+
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('auth_token');
+            currentUser = null;
             document.getElementById('loginBtn').style.display = 'flex';
             document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('quotaBar').style.display = 'none';
         });
 
-        // 检查 URL 是否携带 token（OAuth 回调后）
+        // ===== 图片处理（走 Worker 代理，带额度控制） =====
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const previewArea = document.getElementById('previewArea');
+        const originalImage = document.getElementById('originalImage');
+        const resultImage = document.getElementById('resultImage');
+        const actions = document.getElementById('actions');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const errorDiv = document.getElementById('error');
+        const errorMsg = document.getElementById('errorMsg');
+        let resultBlob = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault(); uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) processImage(file);
+        });
+        fileInput.addEventListener('change', (e) => { if (e.target.files[0]) processImage(e.target.files[0]); });
+
+        async function processImage(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => { originalImage.src = e.target.result; };
+            reader.readAsDataURL(file);
+
+            uploadArea.style.display = 'none';
+            errorDiv.style.display = 'none';
+            loading.style.display = 'block';
+            previewArea.style.display = 'none';
+            actions.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('image_file', file);
+
+                const token = localStorage.getItem('auth_token');
+                const headers = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const response = await fetch(`${AUTH_API}/api/process`, {
+                    method: 'POST',
+                    headers,
+                    body: formData,
+                });
+
+                if (response.status === 429) {
+                    // 未登录超限
+                    loading.style.display = 'none';
+                    uploadArea.style.display = 'block';
+                    document.getElementById('guestLimitModal').classList.add('show');
+                    document.getElementById('loginPrompt').style.display = 'block';
+                    return;
+                }
+
+                if (response.status === 402) {
+                    // 已登录无额度
+                    const errData = await response.json();
+                    loading.style.display = 'none';
+                    uploadArea.style.display = 'block';
+                    document.getElementById('noCreditsMsg').textContent = errData.message || '额度已用完';
+                    document.getElementById('noCreditsModal').classList.add('show');
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `请求失败 (${response.status})`);
+                }
+
+                resultBlob = await response.blob();
+                resultImage.src = URL.createObjectURL(resultBlob);
+                loading.style.display = 'none';
+                previewArea.style.display = 'grid';
+                actions.style.display = 'flex';
+
+                // 刷新额度显示
+                if (token) {
+                    const meRes = await fetch(`${AUTH_API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+                    if (meRes.ok) { currentUser = await meRes.json(); updateQuotaBar(currentUser); }
+                }
+
+            } catch(err) {
+                loading.style.display = 'none';
+                uploadArea.style.display = 'block';
+                errorDiv.style.display = 'block';
+                errorMsg.textContent = '处理失败：' + err.message;
+            }
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (!resultBlob) return;
+            const link = document.createElement('a');
+            link.download = 'removed-background.png';
+            link.href = URL.createObjectURL(resultBlob);
+            link.click();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            uploadArea.style.display = 'block';
+            previewArea.style.display = 'none';
+            actions.style.display = 'none';
+            errorDiv.style.display = 'none';
+            fileInput.value = '';
+            resultBlob = null;
+        });
+
+        function closeModal() { document.getElementById('noCreditsModal').classList.remove('show'); }
+        function closeGuestModal() { document.getElementById('guestLimitModal').classList.remove('show'); }
+
+        // OAuth 回调处理
         const urlParams = new URLSearchParams(window.location.search);
         const tokenFromUrl = urlParams.get('token');
         if (tokenFromUrl) {
             localStorage.setItem('auth_token', tokenFromUrl);
-            // 清除 URL 中的 token 参数
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        // 页面加载时检查登录状态
         checkAuth();
     </script>
 </body>
