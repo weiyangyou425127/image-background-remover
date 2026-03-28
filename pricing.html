@@ -300,27 +300,30 @@
     <p class="section-sub">No subscription needed. Credits never expire.</p>
 
     <div class="credits-grid">
-        <div class="credit-card">
+        <div class="credit-card" onclick="handleBuyCredits('credits_10')" style="cursor:pointer">
             <div class="credit-amount">10</div>
             <div class="credit-unit">images</div>
             <div class="credit-price">$3.9</div>
             <div class="credit-per">$0.39 per image</div>
             <div class="credit-tag">✓ Never expires</div>
+            <button class="btn-plan btn-plan-outline" style="margin-top:16px;width:100%">Buy Now</button>
         </div>
-        <div class="credit-card popular">
+        <div class="credit-card popular" onclick="handleBuyCredits('credits_50')" style="cursor:pointer">
             <div class="credit-badge">🔥 Best Value</div>
             <div class="credit-amount">50</div>
             <div class="credit-unit">images</div>
             <div class="credit-price">$14.9</div>
             <div class="credit-per">$0.30 per image</div>
             <div class="credit-tag">✓ Never expires</div>
+            <button class="btn-plan btn-plan-primary" style="margin-top:16px;width:100%">Buy Now</button>
         </div>
-        <div class="credit-card">
+        <div class="credit-card" onclick="handleBuyCredits('credits_200')" style="cursor:pointer">
             <div class="credit-amount">200</div>
             <div class="credit-unit">images</div>
             <div class="credit-price">$49.9</div>
             <div class="credit-per">$0.25 per image</div>
             <div class="credit-tag">✓ Never expires</div>
+            <button class="btn-plan btn-plan-outline" style="margin-top:16px;width:100%">Buy Now</button>
         </div>
     </div>
 </div>
@@ -438,14 +441,75 @@ function toggleBilling() {
     document.getElementById('businessOriginal').textContent = isYearly ? prices.originalYearly.business : '';
 }
 
+// PayPal 配置
+const PAYPAL_EMAIL = 'weiyangyou425127@gmail.com';
+const PAYPAL_BASE = 'https://www.paypal.com/cgi-bin/webscr';
+
+const PLANS = {
+    // 订阅套餐
+    basic_monthly:   { name: 'Basic Plan - Monthly',   amount: '6.90',  currency: 'USD', type: 'sub' },
+    basic_yearly:    { name: 'Basic Plan - Yearly',     amount: '58.80', currency: 'USD', type: 'sub' },
+    pro_monthly:     { name: 'Pro Plan - Monthly',      amount: '14.90', currency: 'USD', type: 'sub' },
+    pro_yearly:      { name: 'Pro Plan - Yearly',       amount: '118.80',currency: 'USD', type: 'sub' },
+    business_monthly:{ name: 'Business Plan - Monthly', amount: '39.90', currency: 'USD', type: 'sub' },
+    business_yearly: { name: 'Business Plan - Yearly',  amount: '334.80',currency: 'USD', type: 'sub' },
+    // 积分包
+    credits_10:  { name: '10 Image Credits',  amount: '3.90',  currency: 'USD', type: 'buy' },
+    credits_50:  { name: '50 Image Credits',  amount: '14.90', currency: 'USD', type: 'buy' },
+    credits_200: { name: '200 Image Credits', amount: '49.90', currency: 'USD', type: 'buy' },
+};
+
 function handleBuy(plan) {
     const token = localStorage.getItem('auth_token');
     if (!token) {
+        // 未登录先去登录
+        sessionStorage.setItem('pendingPlan', plan);
         window.location.href = 'https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google';
         return;
     }
-    // Stripe 集成后跳转支付，目前提示
-    alert('💳 Payment coming soon! We\'re integrating Stripe. Stay tuned!');
+    const billing = isYearly ? 'yearly' : 'monthly';
+    const key = plan + '_' + billing;
+    payWithPayPal(key);
+}
+
+function handleBuyCredits(key) {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        sessionStorage.setItem('pendingPlan', key);
+        window.location.href = 'https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google';
+        return;
+    }
+    payWithPayPal(key);
+}
+
+function payWithPayPal(key) {
+    const plan = PLANS[key];
+    if (!plan) return;
+
+    // 获取当前登录用户邮箱作为 custom 参数（方便后续对账）
+    const token = localStorage.getItem('auth_token');
+    let userEmail = '';
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        userEmail = payload.email || '';
+    } catch(e) {}
+
+    const params = new URLSearchParams({
+        cmd: '_xclick',
+        business: PAYPAL_EMAIL,
+        item_name: plan.name,
+        amount: plan.amount,
+        currency_code: plan.currency,
+        no_shipping: '1',
+        no_note: '0',
+        custom: userEmail,  // 用于对账
+        return: 'https://imagebackgroundremover.quest/payment-success.html',
+        cancel_return: 'https://imagebackgroundremover.quest/pricing.html',
+        notify_url: 'https://image-bg-auth.weiyangyou425127.workers.dev/api/paypal/webhook',
+    });
+
+    // 在新标签打开 PayPal 付款页
+    window.open(`${PAYPAL_BASE}?${params.toString()}`, '_blank');
 }
 
 function toggleFaq(btn) {

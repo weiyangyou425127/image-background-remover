@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - Image Background Remover</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fc; color: #333; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .card {
+            background: #fff; border-radius: 20px; padding: 48px 40px;
+            text-align: center; max-width: 440px; width: 90%;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+        }
+        .icon { font-size: 72px; margin-bottom: 20px; animation: pop 0.4s ease; }
+        @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+        h1 { font-size: 26px; font-weight: 800; color: #1a1a2e; margin-bottom: 12px; }
+        p { font-size: 15px; color: #666; line-height: 1.6; margin-bottom: 8px; }
+        .notice {
+            background: #f0efff; border-radius: 10px;
+            padding: 14px 18px; margin: 24px 0;
+            font-size: 13px; color: #5a52e0; line-height: 1.6;
+            text-align: left;
+        }
+        .notice strong { display: block; margin-bottom: 4px; }
+        .btn { display: inline-block; padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; text-decoration: none; margin: 6px; cursor: pointer; border: none; }
+        .btn-primary { background: #6c63ff; color: #fff; }
+        .btn-primary:hover { background: #5a52e0; }
+        .btn-secondary { background: #f0f0f0; color: #555; }
+        .btn-secondary:hover { background: #e5e5e5; }
+        .divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+        .contact { font-size: 13px; color: #aaa; }
+        .contact a { color: #6c63ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🎉</div>
+        <h1>Payment Successful!</h1>
+        <p>Thank you for your purchase.</p>
+        <p>Your credits will be added to your account shortly.</p>
+
+        <div class="notice">
+            <strong>⏳ Processing time</strong>
+            Credits are usually added within a few minutes after payment confirmation. If your balance hasn't updated after 10 minutes, please contact us.
+        </div>
+
+        <div>
+            <a href="/" class="btn btn-primary">Start Removing Backgrounds</a>
+            <a href="/dashboard.html" class="btn btn-secondary">View Dashboard</a>
+        </div>
+
+        <hr class="divider">
+        <p class="contact">
+            Questions? Email us at
+            <a href="mailto:weiyangyou425127@gmail.com">support@imagebackgroundremover.quest</a>
+        </p>
+    </div>
+
+    <script>
+        // 如果有 token，刷新用户信息
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            // 未登录就跳首页
+            setTimeout(() => window.location.href = '/', 5000);
+        }
+    </script>
+</body>
+</html>

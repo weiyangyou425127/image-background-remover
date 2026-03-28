@@ -260,7 +260,70 @@ export default {
       return bgResult;
     }
 
-    // ==================== 个人中心 ====================
+    // ==================== PAYPAL IPN WEBHOOK ====================
+    // POST /api/paypal/webhook — PayPal 付款通知
+    if (url.pathname === '/api/paypal/webhook' && request.method === 'POST') {
+      try {
+        const body = await request.text();
+
+        // 1. 验证 PayPal IPN（回发确认）
+        const verifyRes = await fetch('https://ipnpb.paypal.com/cgi-bin/webscr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'cmd=_notify-validate&' + body,
+        });
+        const verifyText = await verifyRes.text();
+        if (verifyText !== 'VERIFIED') {
+          return new Response('Invalid IPN', { status: 400 });
+        }
+
+        // 2. 解析参数
+        const params = new URLSearchParams(body);
+        const paymentStatus = params.get('payment_status');
+        const receiverEmail = params.get('receiver_email');
+        const itemName = params.get('item_name');
+        const mcGross = parseFloat(params.get('mc_gross') || '0');
+        const custom = params.get('custom') || ''; // 用户邮箱
+
+        // 验证收款邮箱
+        if (receiverEmail !== env.PAYPAL_EMAIL) {
+          return new Response('Wrong receiver', { status: 400 });
+        }
+
+        if (paymentStatus !== 'Completed') {
+          return new Response('Not completed', { status: 200 });
+        }
+
+        // 3. 根据金额判断购买的是什么
+        let creditsToAdd = 0;
+        if (Math.abs(mcGross - 3.90) < 0.01) creditsToAdd = 10;
+        else if (Math.abs(mcGross - 14.90) < 0.01) creditsToAdd = 50;
+        else if (Math.abs(mcGross - 49.90) < 0.01) creditsToAdd = 200;
+
+        // 4. 找到用户并增加积分
+        if (creditsToAdd > 0 && custom) {
+          const user = await env.DB.prepare(
+            `SELECT id FROM users WHERE email = ?`
+          ).bind(custom).first();
+
+          if (user) {
+            await env.DB.prepare(
+              `UPDATE users SET paid_credits = paid_credits + ? WHERE id = ?`
+            ).bind(creditsToAdd, user.id).run();
+
+            await env.DB.prepare(`
+              INSERT INTO transactions (user_id, type, credits_delta, description)
+              VALUES (?, 'purchase', ?, ?)
+            `).bind(user.id, creditsToAdd, `PayPal购买 ${creditsToAdd}张积分 ($${mcGross})`).run();
+          }
+        }
+
+        return new Response('OK', { status: 200 });
+      } catch (err) {
+        return new Response('Error: ' + err.message, { status: 500 });
+      }
+    }
+
 
     // GET /api/user/stats — 用户统计
     if (url.pathname === '/api/user/stats') {
