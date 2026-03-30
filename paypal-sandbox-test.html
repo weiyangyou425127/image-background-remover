@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal 沙箱测试</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1 { color: #333; margin-bottom: 10px; }
+        .badge { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .price { font-size: 36px; font-weight: 800; color: #6366f1; margin: 20px 0; }
+        #paypal-button { margin-top: 20px; }
+        .note { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>PayPal 沙箱测试 <span class="badge">SANDBOX</span></h1>
+        <p style="color: #666;">使用沙箱账号测试支付</p>
+        
+        <div class="price">$3.90</div>
+        <p>10 积分包</p>
+        
+        <div id="paypal-button"></div>
+        
+        <div class="note">
+            <strong>📝 测试说明：</strong><br>
+            1. 点击 PayPal 按钮<br>
+            2. 使用沙箱 Personal Account 登录<br>
+            3. 完成支付测试
+        </div>
+    </div>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
+    <script>
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: '3.90'
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    alert('支付成功！订单 ID: ' + data.orderID);
+                    console.log('支付详情:', details);
+                });
+            },
+            onError: function(err) {
+                alert('支付失败');
+                console.error(err);
+            }
+        }).render('#paypal-button');
+    </script>
+</body>
+</html>
