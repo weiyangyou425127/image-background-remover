@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PayPal 调试测试</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .status { padding: 15px; margin: 20px 0; border-radius: 8px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .info { background: #dbeafe; color: #1e40af; }
+        #paypal-button { margin: 20px 0; }
+        .log { background: #f3f4f6; padding: 10px; margin: 10px 0; font-size: 12px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>PayPal 调试测试</h1>
+    
+    <div id="status" class="status info">准备中...</div>
+    
+    <div id="paypal-button"></div>
+    
+    <h3>调试日志：</h3>
+    <div id="logs"></div>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
+    <script>
+        const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+        const statusDiv = document.getElementById('status');
+        const logsDiv = document.getElementById('logs');
+        
+        function log(msg) {
+            console.log(msg);
+            const div = document.createElement('div');
+            div.className = 'log';
+            div.textContent = new Date().toLocaleTimeString() + ' - ' + msg;
+            logsDiv.appendChild(div);
+        }
+        
+        const token = localStorage.getItem('auth_token');
+        log('Token: ' + (token ? '已登录' : '未登录'));
+        
+        if (!token) {
+            statusDiv.className = 'status error';
+            statusDiv.innerHTML = '❌ 请先登录：<a href="' + AUTH_API + '/api/auth/google">点击登录</a>';
+        } else {
+            statusDiv.textContent = '✅ 已登录，可以测试支付';
+            
+            paypal.Buttons({
+                createOrder: async () => {
+                    log('开始创建订单...');
+                    try {
+                        const res = await fetch(AUTH_API + '/api/paypal/create-order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + token,
+                            },
+                            body: JSON.stringify({
+                                package: 'credits_10',
+                                amount: '3.90',
+                                currency: 'USD',
+                            }),
+                        });
+                        const data = await res.json();
+                        log('订单创建响应: ' + JSON.stringify(data));
+                        if (!res.ok) throw new Error(data.error);
+                        log('订单 ID: ' + data.orderID);
+                        return data.orderID;
+                    } catch (err) {
+                        log('创建订单失败: ' + err.message);
+                        throw err;
+                    }
+                },
+                onApprove: async (data) => {
+                    log('支付批准，订单 ID: ' + data.orderID);
+                    statusDiv.className = 'status info';
+                    statusDiv.textContent = '⏳ 正在处理支付...';
+                    
+                    try {
+                        const res = await fetch(AUTH_API + '/api/paypal/capture-order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + token,
+                            },
+                            body: JSON.stringify({ orderID: data.orderID }),
+                        });
+                        const result = await res.json();
+                        log('捕获响应: ' + JSON.stringify(result));
+                        
+                        if (!res.ok) throw new Error(result.error);
+                        
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '🎉 支付成功！已获得 ' + result.credits + ' 积分';
+                        log('✅ 成功！积分: ' + result.credits);
+                    } catch (err) {
+                        log('❌ 捕获失败: ' + err.message);
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ 支付处理失败：' + err.message;
+                    }
+                },
+                onError: (err) => {
+                    log('❌ PayPal 错误: ' + JSON.stringify(err));
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ 支付出错';
+                }
+            }).render('#paypal-button');
+        }
+    </script>
+</body>
+</html>
