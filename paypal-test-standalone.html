@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal 支付测试 - 沙箱环境</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header p { font-size: 16px; opacity: 0.9; }
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .card .price {
+            font-size: 32px;
+            font-weight: 800;
+            color: #667eea;
+            margin-bottom: 16px;
+        }
+        .card .desc {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .paypal-button {
+            min-height: 45px;
+        }
+        .status {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: #0369a1;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #15803d;
+        }
+        .status.error {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💳 PayPal 支付测试</h1>
+            <p>使用沙箱账号测试支付流程</p>
+            <span class="badge">🧪 Sandbox Environment</span>
+        </div>
+
+        <div class="status" id="status">
+            ℹ️ 请先登录，然后选择积分包进行测试
+        </div>
+
+        <div class="card">
+            <h3>10 积分包</h3>
+            <div class="price">$3.90</div>
+            <div class="desc">适合测试小额支付</div>
+            <div id="paypal-button-10" class="paypal-button"></div>
+        </div>
+
+        <div class="card">
+            <h3>50 积分包</h3>
+            <div class="price">$14.90</div>
+            <div class="desc">最受欢迎的积分包</div>
+            <div id="paypal-button-50" class="paypal-button"></div>
+        </div>
+
+        <div class="card">
+            <h3>200 积分包</h3>
+            <div class="price">$49.90</div>
+            <div class="desc">大容量积分包</div>
+            <div id="paypal-button-200" class="paypal-button"></div>
+        </div>
+    </div>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
+    <script>
+        const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+        const statusDiv = document.getElementById('status');
+
+        // 检查登录状态
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            statusDiv.className = 'status error';
+            statusDiv.innerHTML = '❌ 请先登录：<a href="https://image-bg-auth.weiyangyou425127.workers.dev/api/auth/google" style="color:#dc2626;text-decoration:underline">点击登录</a>';
+        }
+
+        // 渲染 PayPal 按钮
+        function renderButton(containerId, pkg, amount, credits) {
+            paypal.Buttons({
+                createOrder: async () => {
+                    try {
+                        const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                                package: pkg,
+                                amount: amount,
+                                currency: 'USD',
+                            }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        statusDiv.className = 'status';
+                        statusDiv.textContent = '✅ 订单已创建，请在 PayPal 窗口完成支付';
+                        return data.orderID;
+                    } catch (err) {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ 创建订单失败：' + err.message;
+                        throw err;
+                    }
+                },
+                onApprove: async (data) => {
+                    try {
+                        statusDiv.className = 'status';
+                        statusDiv.textContent = '⏳ 正在处理支付...';
+                        const res = await fetch(`${AUTH_API}/api/paypal/capture-order`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ orderID: data.orderID }),
+                        });
+                        const result = await res.json();
+                        if (!res.ok) throw new Error(result.error);
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `🎉 支付成功！已获得 ${result.credits} 积分`;
+                        setTimeout(() => {
+                            window.location.href = '/dashboard.html';
+                        }, 2000);
+                    } catch (err) {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ 支付处理失败：' + err.message;
+                    }
+                },
+                onError: (err) => {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ 支付出错，请重试';
+                    console.error(err);
+                }
+            }).render(`#${containerId}`);
+        }
+
+        if (token) {
+            renderButton('paypal-button-10', 'credits_10', '3.90', 10);
+            renderButton('paypal-button-50', 'credits_50', '14.90', 50);
+            renderButton('paypal-button-200', 'credits_200', '49.90', 200);
+        }
+    </script>
+</body>
+</html>
