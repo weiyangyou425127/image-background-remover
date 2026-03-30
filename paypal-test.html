@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal 支付测试</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .package { border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .paypal-button { margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>PayPal 支付测试</h1>
+    
+    <div class="package">
+        <h3>10 积分包 - $3.90</h3>
+        <div id="paypal-button-10" class="paypal-button"></div>
+    </div>
+
+    <div class="package">
+        <h3>50 积分包 - $14.90</h3>
+        <div id="paypal-button-50" class="paypal-button"></div>
+    </div>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
+    <script>
+        const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+
+        function renderPayPalButton(containerId, packageKey, amount) {
+            paypal.Buttons({
+                createOrder: async () => {
+                    const token = localStorage.getItem('auth_token');
+                    const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            package: packageKey,
+                            amount: amount,
+                            currency: 'USD',
+                        }),
+                    });
+                    const data = await res.json();
+                    return data.orderID;
+                },
+                onApprove: async (data) => {
+                    const token = localStorage.getItem('auth_token');
+                    const res = await fetch(`${AUTH_API}/api/paypal/capture-order`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ orderID: data.orderID }),
+                    });
+                    const result = await res.json();
+                    alert(`支付成功！获得 ${result.credits} 积分`);
+                    window.location.href = '/dashboard.html';
+                },
+                onError: (err) => {
+                    console.error(err);
+                    alert('支付失败，请重试');
+                }
+            }).render(`#${containerId}`);
+        }
+
+        renderPayPalButton('paypal-button-10', 'credits_10', '3.90');
+        renderPayPalButton('paypal-button-50', 'credits_50', '14.90');
+    </script>
+</body>
+</html>
