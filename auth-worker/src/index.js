@@ -411,12 +411,19 @@ export default {
         const PACKAGES = { credits_10: 10, credits_50: 50, credits_200: 200 };
         const credits = PACKAGES[pkgKey];
 
+        console.log('Capture success:', { customId, userId, pkgKey, credits, payloadUid: payload.uid });
+
         if (credits && parseInt(userId) === payload.uid) {
-          await env.DB.prepare(`UPDATE users SET paid_credits = paid_credits + ? WHERE id = ?`).bind(credits, payload.uid).run();
-          await env.DB.prepare(`INSERT INTO transactions (user_id, type, credits_delta, description) VALUES (?, 'purchase', ?, ?)`).bind(payload.uid, credits, `PayPal: ${pkgKey}`).run();
+          const updateResult = await env.DB.prepare(`UPDATE users SET paid_credits = paid_credits + ? WHERE id = ?`).bind(credits, payload.uid).run();
+          console.log('Update result:', updateResult);
+          
+          const txResult = await env.DB.prepare(`INSERT INTO transactions (user_id, type, credits_delta, description) VALUES (?, 'purchase', ?, ?)`).bind(payload.uid, credits, `PayPal: ${pkgKey}`).run();
+          console.log('Transaction result:', txResult);
+        } else {
+          console.log('Credits not added:', { credits, userId, payloadUid: payload.uid, match: parseInt(userId) === payload.uid });
         }
 
-        return json({ success: true, credits });
+        return json({ success: true, credits, userId: payload.uid });
       } catch (err) {
         return json({ error: err.message }, 500);
       }
