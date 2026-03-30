@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>手动触发积分到账</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .card { background: white; border: 1px solid #ddd; padding: 30px; border-radius: 12px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: #6c63ff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #5a52e0; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 8px; }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>手动触发积分到账</h1>
+        <p>输入 PayPal 订单 ID 手动触发积分到账</p>
+        
+        <input type="text" id="orderID" placeholder="输入订单 ID (例如: 8AB12345CD678901E)">
+        <button onclick="captureOrder()">触发积分到账</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+        
+        async function captureOrder() {
+            const orderID = document.getElementById('orderID').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!orderID) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '请输入订单 ID';
+                return;
+            }
+            
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '请先<a href="' + AUTH_API + '/api/auth/google">登录</a>';
+                return;
+            }
+            
+            resultDiv.className = 'result';
+            resultDiv.textContent = '处理中...';
+            
+            try {
+                const res = await fetch(AUTH_API + '/api/paypal/capture-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                    },
+                    body: JSON.stringify({ orderID: orderID }),
+                });
+                
+                const result = await res.json();
+                
+                if (!res.ok) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '失败: ' + result.error;
+                } else {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = '✅ 成功！<br>积分: ' + result.credits + '<br>用户ID: ' + result.userId;
+                }
+            } catch (err) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '错误: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
