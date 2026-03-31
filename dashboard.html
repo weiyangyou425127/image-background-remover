@@ -36,7 +36,6 @@
     <a href="/" class="btn-back">← 返回首页</a>
 </nav>
 <div class="container"><div id="content">加载中...</div></div>
-<script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
 <script>
 const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
 let currentUser = null;
@@ -44,15 +43,10 @@ let currentUser = null;
 async function loadDashboard() {
     const token = localStorage.getItem('auth_token');
     if (!token) { window.location.href = '/'; return; }
-    try {
-        const res = await fetch(`${AUTH_API}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (!res.ok) throw new Error('Auth failed');
-        currentUser = await res.json();
-        renderDashboard();
-    } catch(e) {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/';
-    }
+    const res = await fetch(`${AUTH_API}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) { localStorage.removeItem('auth_token'); window.location.href = '/'; return; }
+    currentUser = await res.json();
+    renderDashboard();
 }
 
 function renderDashboard() {
@@ -69,42 +63,27 @@ function renderDashboard() {
         <div class="section">
             <div class="section-title">🛒 购买积分包</div>
             <div class="buy-grid">
-                <div class="buy-card">
-                    <div class="price">$3.9</div>
-                    <div class="credits">10 张</div>
-                    <button class="buy-btn" onclick="buyPackage('credits_10', '3.90', 10)">PayPal 购买</button>
-                </div>
-                <div class="buy-card">
-                    <div class="price">$14.9</div>
-                    <div class="credits">50 张</div>
-                    <button class="buy-btn" onclick="buyPackage('credits_50', '14.90', 50)">PayPal 购买</button>
-                </div>
-                <div class="buy-card">
-                    <div class="price">$49.9</div>
-                    <div class="credits">200 张</div>
-                    <button class="buy-btn" onclick="buyPackage('credits_200', '49.90', 200)">PayPal 购买</button>
-                </div>
+                <div class="buy-card"><div class="price">$3.9</div><div class="credits">10 张</div><button class="buy-btn" onclick="buyPackage('credits_10', '3.90')">PayPal 购买</button></div>
+                <div class="buy-card"><div class="price">$14.9</div><div class="credits">50 张</div><button class="buy-btn" onclick="buyPackage('credits_50', '14.90')">PayPal 购买</button></div>
+                <div class="buy-card"><div class="price">$49.9</div><div class="credits">200 张</div><button class="buy-btn" onclick="buyPackage('credits_200', '49.90')">PayPal 购买</button></div>
             </div>
         </div>
         <div class="section"><button class="btn-danger" onclick="logout()">退出登录</button></div>
     `;
 }
 
-async function buyPackage(pkg, amount, credits) {
-    try {
-        const token = localStorage.getItem('auth_token');
-        const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ package: pkg, amount })
-        });
-        const data = await res.json();
-        if (!data.orderID) throw new Error(data.error || 'Failed to create order');
-        
-        // 跳转到 PayPal 支付页面
+async function buyPackage(pkg, amount) {
+    const token = localStorage.getItem('auth_token');
+    const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ package: pkg, amount })
+    });
+    const data = await res.json();
+    if (data.orderID) {
         window.location.href = `https://www.sandbox.paypal.com/checkoutnow?token=${data.orderID}`;
-    } catch(e) {
-        alert('创建订单失败: ' + e.message);
+    } else {
+        alert('创建订单失败: ' + (data.error || '未知错误'));
     }
 }
 
