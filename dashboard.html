@@ -81,7 +81,14 @@ function renderDashboard() {
         </div>
         <div class="section"><button class="btn-danger" onclick="logout()">退出登录</button></div>
     `;
-    Object.keys(PACKAGES).forEach(pkg => renderPayPalButton(pkg));
+    
+    // 等待 PayPal SDK 加载完成后再渲染按钮
+    if (typeof paypal !== 'undefined') {
+        Object.keys(PACKAGES).forEach(pkg => renderPayPalButton(pkg));
+    } else {
+        console.error('PayPal SDK not loaded');
+        alert('PayPal 加载失败，请刷新页面重试');
+    }
 }
 
 function renderPayPalButton(pkg) {
@@ -135,7 +142,10 @@ function logout() {
     window.location.href = '/';
 }
 
-loadDashboard();
+// 等待 DOM 和 PayPal SDK 都加载完成
+window.addEventListener('load', () => {
+    loadDashboard();
+});
 </script>
 </body>
 </html>
