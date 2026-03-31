@@ -260,43 +260,67 @@ export default {
       return bgResult;
     }
 
-    // ==================== PAYPAL WEBHOOK ====================
-    // POST /api/paypal/webhook — PayPal 付款通知（支持 Orders API v2）
+    // ==================== PAYPAL IPN WEBHOOK ====================
+    // POST /api/paypal/webhook — PayPal 付款通知
     if (url.pathname === '/api/paypal/webhook' && request.method === 'POST') {
       try {
-        const body = await request.json();
-        const eventType = body.event_type;
+        const body = await request.text();
 
-        console.log('PayPal Webhook received:', eventType);
+        // 1. 验证 PayPal IPN（回发确认）
+        const verifyRes = await fetch('https://ipnpb.paypal.com/cgi-bin/webscr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'cmd=_notify-validate&' + body,
+        });
+        const verifyText = await verifyRes.text();
+        if (verifyText !== 'VERIFIED') {
+          return new Response('Invalid IPN', { status: 400 });
+        }
 
-        // 只处理订单完成事件
-        if (eventType === 'CHECKOUT.ORDER.COMPLETED' || eventType === 'PAYMENT.CAPTURE.COMPLETED') {
-          const resource = body.resource;
-          const customId = resource.purchase_units?.[0]?.payments?.captures?.[0]?.custom_id || 
-                          resource.purchase_units?.[0]?.custom_id;
+        // 2. 解析参数
+        const params = new URLSearchParams(body);
+        const paymentStatus = params.get('payment_status');
+        const receiverEmail = params.get('receiver_email');
+        const itemName = params.get('item_name');
+        const mcGross = parseFloat(params.get('mc_gross') || '0');
+        const custom = params.get('custom') || ''; // 用户邮箱
 
-          if (!customId) {
-            console.log('No custom_id found');
-            return new Response('OK', { status: 200 });
-          }
+        // 验证收款邮箱
+        if (receiverEmail !== env.PAYPAL_EMAIL) {
+          return new Response('Wrong receiver', { status: 400 });
+        }
 
-          const [userId, pkgKey] = customId.split('_');
-          const PACKAGES = { credits_10: 10, credits_50: 50, credits_200: 200 };
-          const credits = PACKAGES[pkgKey];
+        if (paymentStatus !== 'Completed') {
+          return new Response('Not completed', { status: 200 });
+        }
 
-          console.log('Processing webhook:', { customId, userId, pkgKey, credits });
+        // 3. 根据金额判断购买的是什么
+        let creditsToAdd = 0;
+        if (Math.abs(mcGross - 3.90) < 0.01) creditsToAdd = 10;
+        else if (Math.abs(mcGross - 14.90) < 0.01) creditsToAdd = 50;
+        else if (Math.abs(mcGross - 49.90) < 0.01) creditsToAdd = 200;
 
-          if (credits && userId) {
-            await env.DB.prepare(`UPDATE users SET paid_credits = paid_credits + ? WHERE id = ?`).bind(credits, parseInt(userId)).run();
-            await env.DB.prepare(`INSERT INTO transactions (user_id, type, credits_delta, description) VALUES (?, 'purchase', ?, ?)`).bind(parseInt(userId), credits, `PayPal Webhook: ${pkgKey}`).run();
-            console.log('Credits added successfully');
+        // 4. 找到用户并增加积分
+        if (creditsToAdd > 0 && custom) {
+          const user = await env.DB.prepare(
+            `SELECT id FROM users WHERE email = ?`
+          ).bind(custom).first();
+
+          if (user) {
+            await env.DB.prepare(
+              `UPDATE users SET paid_credits = paid_credits + ? WHERE id = ?`
+            ).bind(creditsToAdd, user.id).run();
+
+            await env.DB.prepare(`
+              INSERT INTO transactions (user_id, type, credits_delta, description)
+              VALUES (?, 'purchase', ?, ?)
+            `).bind(user.id, creditsToAdd, `PayPal购买 ${creditsToAdd}张积分 ($${mcGross})`).run();
           }
         }
 
         return new Response('OK', { status: 200 });
       } catch (err) {
-        console.error('Webhook error:', err);
-        return new Response('OK', { status: 200 }); // 总是返回 200 避免 PayPal 重试
+        return new Response('Error: ' + err.message, { status: 500 });
       }
     }
 
@@ -348,10 +372,6 @@ export default {
             amount: { currency_code: 'USD', value: amount },
             custom_id: `${payload.uid}_${pkg}`,
           }],
-          application_context: {
-            return_url: `${env.FRONTEND_URL || 'https://imagebackgroundremover.quest'}/payment-success.html`,
-            cancel_url: `${env.FRONTEND_URL || 'https://imagebackgroundremover.quest'}/dashboard.html`,
-          }
         };
 
         const accessToken = await getPayPalAccessToken(env);
