@@ -81,13 +81,10 @@ function renderDashboard() {
         </div>
         <div class="section"><button class="btn-danger" onclick="logout()">退出登录</button></div>
     `;
-    
-    // 等待 PayPal SDK 加载完成后再渲染按钮
     if (typeof paypal !== 'undefined') {
         Object.keys(PACKAGES).forEach(pkg => renderPayPalButton(pkg));
     } else {
-        console.error('PayPal SDK not loaded');
-        alert('PayPal 加载失败，请刷新页面重试');
+        alert('PayPal SDK 加载失败');
     }
 }
 
@@ -96,6 +93,7 @@ function renderPayPalButton(pkg) {
     paypal.Buttons({
         createOrder: async () => {
             try {
+                console.log('Creating order for', pkg);
                 const token = localStorage.getItem('auth_token');
                 const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
                     method: 'POST',
@@ -103,36 +101,34 @@ function renderPayPalButton(pkg) {
                     body: JSON.stringify({ package: pkg, amount })
                 });
                 const data = await res.json();
-                if (!data.orderID) throw new Error('No orderID');
+                console.log('Order response:', data);
+                if (!data.orderID) {
+                    console.error('No orderID:', data);
+                    throw new Error(data.error || 'No orderID');
+                }
                 return data.orderID;
             } catch(e) {
                 console.error('Create order error:', e);
-                alert('创建订单失败: ' + e.message);
+                throw e;
             }
         },
         onApprove: async (data) => {
-            try {
-                const token = localStorage.getItem('auth_token');
-                const res = await fetch(`${AUTH_API}/api/paypal/capture-order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ orderID: data.orderID })
-                });
-                const result = await res.json();
-                if (res.ok) {
-                    alert(`购买成功！已添加 ${credits} 张积分`);
-                    location.reload();
-                } else {
-                    throw new Error(result.error || 'Capture failed');
-                }
-            } catch(e) {
-                console.error('Capture error:', e);
-                alert('支付处理失败: ' + e.message);
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch(`${AUTH_API}/api/paypal/capture-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ orderID: data.orderID })
+            });
+            const result = await res.json();
+            if (res.ok) {
+                alert(`购买成功！已添加 ${credits} 张积分`);
+                location.reload();
+            } else {
+                alert('支付失败: ' + (result.error || 'Unknown error'));
             }
         },
         onError: (err) => {
-            console.error('PayPal error:', err);
-            alert('支付出错，请重试');
+            console.error('PayPal button error:', err);
         }
     }).render(`#paypal-${pkg}`);
 }
@@ -142,7 +138,6 @@ function logout() {
     window.location.href = '/';
 }
 
-// 等待 DOM 和 PayPal SDK 都加载完成
 window.addEventListener('load', () => {
     loadDashboard();
 });
