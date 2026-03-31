@@ -113,6 +113,9 @@ function renderPayPalButton(pkg) {
                 body: JSON.stringify({ package: pkg, amount })
             });
             const data = await res.json();
+            if (!data.orderID) {
+                throw new Error(data.error || 'Failed to create order');
+            }
             return data.orderID;
         },
         onApprove: async (data) => {
