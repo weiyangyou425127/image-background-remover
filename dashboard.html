@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人中心 - Image Background Remover</title>
-    <script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; }
@@ -26,7 +25,8 @@
         .buy-card { border: 2px solid #eee; border-radius: 10px; padding: 16px; text-align: center; }
         .buy-card .price { font-size: 22px; font-weight: 700; color: #6c63ff; }
         .buy-card .credits { font-size: 13px; color: #555; margin-top: 4px; }
-        .paypal-container { margin-top: 12px; min-height: 45px; }
+        .buy-btn { margin-top: 12px; padding: 10px 20px; background: #0070ba; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; }
+        .buy-btn:hover { background: #005ea6; }
         .btn-danger { background: transparent; color: #e53935; border: 1.5px solid #e53935; border-radius: 8px; padding: 9px 16px; cursor: pointer; font-size: 13px; }
     </style>
 </head>
@@ -35,15 +35,11 @@
     <a href="/" class="navbar-brand">Image <span>BG Remover</span></a>
     <a href="/" class="btn-back">← 返回首页</a>
 </nav>
-<div class="container"><div id="content"></div></div>
+<div class="container"><div id="content">加载中...</div></div>
+<script src="https://www.paypal.com/sdk/js?client-id=Aeajzmpx8jJqRSS2iC-0MS4HaFP4_WkRUzUW_wjHgVr0L2_KUHLFOHMVAnPdDCbH5_ELsk7CNCGyL_-g&currency=USD"></script>
 <script>
 const AUTH_API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
 let currentUser = null;
-const PACKAGES = {
-    credits_10: { amount: '3.90', credits: 10 },
-    credits_50: { amount: '14.90', credits: 50 },
-    credits_200: { amount: '49.90', credits: 200 }
-};
 
 async function loadDashboard() {
     const token = localStorage.getItem('auth_token');
@@ -54,7 +50,6 @@ async function loadDashboard() {
         currentUser = await res.json();
         renderDashboard();
     } catch(e) {
-        console.error('Load error:', e);
         localStorage.removeItem('auth_token');
         window.location.href = '/';
     }
@@ -74,63 +69,43 @@ function renderDashboard() {
         <div class="section">
             <div class="section-title">🛒 购买积分包</div>
             <div class="buy-grid">
-                <div class="buy-card"><div class="price">$3.9</div><div class="credits">10 张</div><div class="paypal-container" id="paypal-credits_10"></div></div>
-                <div class="buy-card"><div class="price">$14.9</div><div class="credits">50 张</div><div class="paypal-container" id="paypal-credits_50"></div></div>
-                <div class="buy-card"><div class="price">$49.9</div><div class="credits">200 张</div><div class="paypal-container" id="paypal-credits_200"></div></div>
+                <div class="buy-card">
+                    <div class="price">$3.9</div>
+                    <div class="credits">10 张</div>
+                    <button class="buy-btn" onclick="buyPackage('credits_10', '3.90', 10)">PayPal 购买</button>
+                </div>
+                <div class="buy-card">
+                    <div class="price">$14.9</div>
+                    <div class="credits">50 张</div>
+                    <button class="buy-btn" onclick="buyPackage('credits_50', '14.90', 50)">PayPal 购买</button>
+                </div>
+                <div class="buy-card">
+                    <div class="price">$49.9</div>
+                    <div class="credits">200 张</div>
+                    <button class="buy-btn" onclick="buyPackage('credits_200', '49.90', 200)">PayPal 购买</button>
+                </div>
             </div>
         </div>
         <div class="section"><button class="btn-danger" onclick="logout()">退出登录</button></div>
     `;
-    if (typeof paypal !== 'undefined') {
-        Object.keys(PACKAGES).forEach(pkg => renderPayPalButton(pkg));
-    } else {
-        alert('PayPal SDK 加载失败');
-    }
 }
 
-function renderPayPalButton(pkg) {
-    const { amount, credits } = PACKAGES[pkg];
-    paypal.Buttons({
-        createOrder: async () => {
-            try {
-                console.log('Creating order for', pkg);
-                const token = localStorage.getItem('auth_token');
-                const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ package: pkg, amount })
-                });
-                const data = await res.json();
-                console.log('Order response:', data);
-                if (!data.orderID) {
-                    console.error('No orderID:', data);
-                    throw new Error(data.error || 'No orderID');
-                }
-                return data.orderID;
-            } catch(e) {
-                console.error('Create order error:', e);
-                throw e;
-            }
-        },
-        onApprove: async (data) => {
-            const token = localStorage.getItem('auth_token');
-            const res = await fetch(`${AUTH_API}/api/paypal/capture-order`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ orderID: data.orderID })
-            });
-            const result = await res.json();
-            if (res.ok) {
-                alert(`购买成功！已添加 ${credits} 张积分`);
-                location.reload();
-            } else {
-                alert('支付失败: ' + (result.error || 'Unknown error'));
-            }
-        },
-        onError: (err) => {
-            console.error('PayPal button error:', err);
-        }
-    }).render(`#paypal-${pkg}`);
+async function buyPackage(pkg, amount, credits) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ package: pkg, amount })
+        });
+        const data = await res.json();
+        if (!data.orderID) throw new Error(data.error || 'Failed to create order');
+        
+        // 跳转到 PayPal 支付页面
+        window.location.href = `https://www.sandbox.paypal.com/checkoutnow?token=${data.orderID}`;
+    } catch(e) {
+        alert('创建订单失败: ' + e.message);
+    }
 }
 
 function logout() {
@@ -138,9 +113,7 @@ function logout() {
     window.location.href = '/';
 }
 
-window.addEventListener('load', () => {
-    loadDashboard();
-});
+loadDashboard();
 </script>
 </body>
 </html>
