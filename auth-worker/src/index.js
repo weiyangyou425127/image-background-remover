@@ -348,6 +348,10 @@ export default {
             amount: { currency_code: 'USD', value: amount },
             custom_id: `${payload.uid}_${pkg}`,
           }],
+          application_context: {
+            return_url: `${env.FRONTEND_URL || 'https://imagebackgroundremover.quest'}/payment-success.html`,
+            cancel_url: `${env.FRONTEND_URL || 'https://imagebackgroundremover.quest'}/dashboard.html`,
+          }
         };
 
         const accessToken = await getPayPalAccessToken(env);
