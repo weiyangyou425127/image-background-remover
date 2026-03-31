@@ -2,20 +2,72 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>支付成功</title>
+    <title>支付处理中...</title>
     <style>
         body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f5f7fa; margin: 0; }
-        .success { text-align: center; background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .success h1 { color: #4caf50; font-size: 32px; margin-bottom: 20px; }
-        .success p { color: #666; font-size: 16px; margin-bottom: 30px; }
-        .btn { padding: 12px 30px; background: #6c63ff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; }
+        .box { text-align: center; background: #fff; padding: 50px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #6c63ff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .success { color: #4caf50; font-size: 32px; margin-bottom: 20px; }
+        .error { color: #f44336; font-size: 24px; margin-bottom: 20px; }
+        .btn { padding: 12px 30px; background: #6c63ff; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; display: inline-block; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div class="success">
-        <h1>✅ 支付成功！</h1>
-        <p>您的积分正在处理中，请稍后刷新页面查看。</p>
-        <a href="/dashboard.html" class="btn">返回个人中心</a>
+    <div class="box">
+        <div id="status">
+            <div class="spinner"></div>
+            <p>正在处理支付...</p>
+        </div>
     </div>
+    <script>
+    const API = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+    async function processPayment() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (!token) {
+            showError('未找到订单信息');
+            return;
+        }
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+            showError('请先登录');
+            setTimeout(() => window.location.href = '/', 2000);
+            return;
+        }
+        try {
+            const res = await fetch(`${API}/api/paypal/capture-order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ orderID: token })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showSuccess(data.credits || 10);
+            } else {
+                showError(data.error || '支付处理失败');
+            }
+        } catch(e) {
+            showError('网络错误: ' + e.message);
+        }
+    }
+    function showSuccess(credits) {
+        document.getElementById('status').innerHTML = `
+            <div class="success">✅</div>
+            <h2>支付成功！</h2>
+            <p>已添加 ${credits} 张积分</p>
+            <a href="/dashboard.html" class="btn">返回个人中心</a>
+        `;
+    }
+    function showError(msg) {
+        document.getElementById('status').innerHTML = `
+            <div class="error">❌</div>
+            <h2>处理失败</h2>
+            <p>${msg}</p>
+            <a href="/dashboard.html" class="btn">返回个人中心</a>
+        `;
+    }
+    processPayment();
+    </script>
 </body>
 </html>
