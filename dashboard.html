@@ -107,6 +107,7 @@ function renderPayPalButton(pkg) {
     paypal.Buttons({
         createOrder: async () => {
             const token = localStorage.getItem('auth_token');
+            if (!token) { alert('❌ 未检测到登录 Token，请重新登录'); throw new Error('No token'); }
             const res = await fetch(`${AUTH_API}/api/paypal/create-order`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -114,6 +115,7 @@ function renderPayPalButton(pkg) {
             });
             const data = await res.json();
             if (!data.orderID) {
+                alert(`❌ 创建订单失败 (HTTP ${res.status}): ${data.error || JSON.stringify(data)}`);
                 throw new Error(data.error || 'Failed to create order');
             }
             return data.orderID;
