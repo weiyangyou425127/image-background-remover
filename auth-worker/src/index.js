@@ -407,7 +407,9 @@ export default {
         if (!res.ok) throw new Error(capture.message || 'Capture failed');
 
         const customId = capture.purchase_units[0].payments.captures[0].custom_id;
-        const [userId, pkgKey] = customId.split('_');
+        const parts = customId.split('_');
+        const userId = parts[0];
+        const pkgKey = parts.slice(1).join('_'); // 正确拼回 credits_10 / credits_50 / credits_200
         const PACKAGES = { credits_10: 10, credits_50: 50, credits_200: 200 };
         const credits = PACKAGES[pkgKey];
 
