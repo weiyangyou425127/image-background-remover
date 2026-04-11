@@ -23,6 +23,8 @@
             text-align: left;
         }
         .notice strong { display: block; margin-bottom: 4px; }
+        .notice.success { background: #e8f5e9; color: #2e7d32; }
+        .notice.error { background: #fdecea; color: #c62828; }
         .btn { display: inline-block; padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; text-decoration: none; margin: 6px; cursor: pointer; border: none; }
         .btn-primary { background: #6c63ff; color: #fff; }
         .btn-primary:hover { background: #5a52e0; }
@@ -31,6 +33,11 @@
         .divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
         .contact { font-size: 13px; color: #aaa; }
         .contact a { color: #6c63ff; text-decoration: none; }
+        .loading { color: #6c63ff; font-size: 14px; margin: 16px 0; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #e0e0ff; border-top-color: #6c63ff; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .credits-added { font-size: 28px; font-weight: 900; color: #6c63ff; margin: 8px 0; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -38,14 +45,25 @@
         <div class="icon">🎉</div>
         <h1>Payment Successful!</h1>
         <p>Thank you for your purchase.</p>
-        <p>Your credits will be added to your account shortly.</p>
 
-        <div class="notice">
-            <strong>⏳ Processing time</strong>
-            Credits are usually added within a few minutes after payment confirmation. If your balance hasn't updated after 10 minutes, please contact us.
+        <!-- 处理中状态 -->
+        <div id="processing" class="loading">
+            <span class="spinner"></span> Adding credits to your account...
         </div>
 
-        <div>
+        <!-- 成功状态 -->
+        <div id="success-msg" class="notice success hidden">
+            <strong>✅ Credits added!</strong>
+            <span id="credits-text">Your credits have been added to your account.</span>
+        </div>
+
+        <!-- 失败状态 -->
+        <div id="error-msg" class="notice error hidden">
+            <strong>⚠️ Auto-processing failed</strong>
+            Don't worry — your payment was received. Credits will be added manually within a few minutes. Contact us if you need help.
+        </div>
+
+        <div id="buttons" class="hidden">
             <a href="/" class="btn btn-primary">Start Removing Backgrounds</a>
             <a href="/dashboard.html" class="btn btn-secondary">View Dashboard</a>
         </div>
@@ -53,17 +71,72 @@
         <hr class="divider">
         <p class="contact">
             Questions? Email us at
-            <a href="mailto:weiyangyou425127@gmail.com">support@imagebackgroundremover.quest</a>
+            <a href="mailto:support@imagebackgroundremover.quest">support@imagebackgroundremover.quest</a>
         </p>
     </div>
 
     <script>
-        // 如果有 token，刷新用户信息
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            // 未登录就跳首页
-            setTimeout(() => window.location.href = '/', 5000);
+        const API_BASE = 'https://image-bg-auth.weiyangyou425127.workers.dev';
+
+        async function capturePayment() {
+            // 从 URL 获取 PayPal 回传的 token（就是 orderID）
+            const params = new URLSearchParams(window.location.search);
+            const orderID = params.get('token');
+            const token = localStorage.getItem('auth_token');
+
+            if (!orderID) {
+                showError('No order ID found in URL.');
+                return;
+            }
+
+            if (!token) {
+                showError('Not logged in. Please log in and contact support.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/paypal/capture-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ orderID })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    showSuccess(data.credits);
+                } else {
+                    console.error('Capture failed:', data);
+                    showError(data.error || 'Unknown error');
+                }
+            } catch (err) {
+                console.error('Network error:', err);
+                showError('Network error: ' + err.message);
+            }
         }
+
+        function showSuccess(credits) {
+            document.getElementById('processing').classList.add('hidden');
+            const successEl = document.getElementById('success-msg');
+            successEl.classList.remove('hidden');
+            if (credits) {
+                document.getElementById('credits-text').textContent = `${credits} credits have been added to your account!`;
+            }
+            document.getElementById('buttons').classList.remove('hidden');
+        }
+
+        function showError(msg) {
+            document.getElementById('processing').classList.add('hidden');
+            document.getElementById('error-msg').classList.remove('hidden');
+            document.getElementById('buttons').classList.remove('hidden');
+            console.warn('Credit capture error:', msg);
+        }
+
+        // 页面加载后立即调用 capture
+        capturePayment();
     </script>
 </body>
 </html>
