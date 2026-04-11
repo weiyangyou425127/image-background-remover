@@ -375,7 +375,7 @@ export default {
         };
 
         const accessToken = await getPayPalAccessToken(env);
-        const res = await fetch(`${env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com'}/v2/checkout/orders`, {
+        const res = await fetch(`${env.PAYPAL_API_BASE || 'https://api-m.paypal.com'}/v2/checkout/orders`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
           body: JSON.stringify(orderData),
@@ -398,7 +398,7 @@ export default {
         const { orderID } = await request.json();
         const accessToken = await getPayPalAccessToken(env);
 
-        const res = await fetch(`${env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com'}/v2/checkout/orders/${orderID}/capture`, {
+        const res = await fetch(`${env.PAYPAL_API_BASE || 'https://api-m.paypal.com'}/v2/checkout/orders/${orderID}/capture`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
         });
@@ -508,7 +508,7 @@ async function verifyJWT(token, secret) {
 
 async function getPayPalAccessToken(env) {
   const auth = btoa(`${env.PAYPAL_CLIENT_ID}:${env.PAYPAL_CLIENT_SECRET}`);
-  const res = await fetch(`${env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com'}/v1/oauth2/token`, {
+  const res = await fetch(`${env.PAYPAL_API_BASE || 'https://api-m.paypal.com'}/v1/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${auth}` },
     body: 'grant_type=client_credentials',
